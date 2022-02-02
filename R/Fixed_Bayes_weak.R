@@ -81,3 +81,8 @@ legend("topleft",
        legend = levels(factor(df$Treatment)),
        pch = 19,
        col = factor(levels(factor(df$Treatment))))
+
+# Posterior predictive check
+
+ypred <- as.matrix(fit, pars = "ypred")
+ppc_dens_overlay(y, ypred[1500:1700, ])
