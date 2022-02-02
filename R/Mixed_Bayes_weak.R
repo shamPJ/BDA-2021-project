@@ -6,7 +6,7 @@ library(gridExtra)
 library(bayesplot)
 require(GGally)
 
-df <- read.csv("data.csv")
+df <- read.csv("../data.csv")
 head(df,20)
 
 data_list <- list(N=length(df$WAKE),
@@ -45,9 +45,12 @@ model {
 }
 
 generated quantities {
+  real mu;
   real ypred[N];
+  
   for(i in 1:N){
-      ypred[i] = beta[1] + u[id[i]] + beta[2]*treat[i] + beta[3]*gen[i] + beta[4]*treat[i]*gen[i];
+       mu = beta[1] + u[id[i]] + beta[2]*treat[i] + beta[3]*gen[i] + beta[4]*treat[i]*gen[i];
+       ypred[i] = normal_rng(mu, sigma);
   }
 }
 "
@@ -59,7 +62,7 @@ fit <- stan(model_code = stanmodel,
             refresh=0,
             seed=42,
             verbose = FALSE)
-print(fit, 'beta')
+print(fit, params=c('beta'))
 
 traceplot(fit, 'beta', inc_warmup = TRUE)
 plot(fit)
@@ -71,11 +74,20 @@ color_scheme_set(scheme = "blue")
 mcmc_areas(posterior,
            pars = c("beta[1]", "beta[2]", "beta[3]", "beta[4]"),
            prob = 0.9) + plot_title
+
+# compute MSE (~24.52791)
+y = df$WAKE
 sumr = summary(fit, pars=c("ypred"))
+ypred = sumr$summary[,1]
+MSE = mean((ypred-y)^2)
 
-plot(df$WAKE, sumr$summary[,1], pch = 19, col=factor(df$Treatment))
+# Scatter plot
+plot(y, ypred,
+     pch = 19,
+     col = factor(df$Treatment))
 
-df[,'Genotype']<-factor(df[,'Genotype'])
-ggplot(aes(x=df$WAKE, y=sumr$summary[,1], shape=df$Genotype, color=df$Treatment)) +
-  geom_point()
-
+# Legend
+legend("topleft",
+       legend = levels(factor(df$Treatment)),
+       pch = 19,
+       col = factor(levels(factor(df$Treatment))))

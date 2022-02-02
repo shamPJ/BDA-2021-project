@@ -15,6 +15,19 @@ plot(fixed, col = df$Treatment+1)
 ggplot(df,aes(x=Treatment,y=WAKE, colour=Genotype, group=Genotype)) + 
        geom_point() + geom_smooth(method = "lm") 
 
+# compute MSE (~59.43669)
+y = df$WAKE
+ypred = predict(fixed)
+MSE = mean((ypred-y)^2)
 
+# Scatter plot
+plot(y, ypred,
+     pch = 19,
+     col = factor(df$Treatment))
 
+# Legend
+legend("topleft",
+       legend = levels(factor(df$Treatment)),
+       pch = 19,
+       col = factor(levels(factor(df$Treatment))))
 

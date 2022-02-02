@@ -6,7 +6,7 @@ library(tidyr)
 library(gridExtra)
 library("bayesplot")
 
-df <- read.csv("data.csv")
+df <- read.csv("../data.csv")
 head(df,20)
 
 data_list <- list(N=length(df$WAKE),
@@ -37,6 +37,16 @@ model {
       y[i] ~ normal(mu, sigma);
       }
 }
+
+generated quantities {
+  real mu;
+  real ypred[N];
+  
+  for(i in 1:N){
+      mu = beta[1] + beta[2]*treat[i] + beta[3]*gen[i] + beta[4]*treat[i]*gen[i];
+      ypred[i] = normal_rng(mu, sigma);
+  }
+}
 "
 
 # fit data
@@ -54,3 +64,20 @@ plot(fit)
 
 df_draws = as.data.frame(fit)
 ggpairs(data=df_draws)
+
+# compute MSE (~59.15719)
+y = df$WAKE
+sumr = summary(fit, pars=c("ypred"))
+ypred = sumr$summary[,1]
+MSE = mean((ypred-y)^2)
+
+# Scatter plot
+plot(y, ypred,
+     pch = 19,
+     col = factor(df$Treatment))
+
+# Legend
+legend("topleft",
+       legend = levels(factor(df$Treatment)),
+       pch = 19,
+       col = factor(levels(factor(df$Treatment))))
